@@ -3,6 +3,7 @@ package top.thevsk.core;
 import top.thevsk.aop.BotControllerInterceptor;
 import top.thevsk.aop.BotSendInterceptor;
 import top.thevsk.entity.BotConfig;
+import top.thevsk.entity.BotRequest;
 import top.thevsk.log.BotLog;
 
 import java.util.HashSet;
@@ -20,12 +21,13 @@ public class Bot {
 
     private BotConfig botConfig = null;
 
-    public Bot() {
+    public Bot(int port, BotConfig botConfig) {
         botControllerInterceptors = new HashSet<>();
         botControllers = new HashSet<>();
         botSendInterceptors = new HashSet<>();
         httpServer = new HttpServer();
-        botConfig = new BotConfig();
+        httpServer.setPort(port);
+        this.botConfig = botConfig;
     }
 
     public Bot addBotController(Object botController) {
@@ -43,17 +45,9 @@ public class Bot {
         return this;
     }
 
-    public Bot setPort(int port) {
-        httpServer.setPort(port);
-        return this;
-    }
-
     public void start() {
 //        check();
-        botConfig.setBotControllerInterceptors(botControllerInterceptors);
-        botConfig.setBotControllers(botControllers);
-        botConfig.setBotSendInterceptors(botSendInterceptors);
-        httpServer.setBotConfig(botConfig);
+        httpServer.setBot(this);
         httpServer.start();
         BotLog.info("server started...");
     }
@@ -62,5 +56,9 @@ public class Bot {
         if (botControllers.size() == 0) {
             throw new RuntimeException("empty controller");
         }
+    }
+
+    void onHttp(BotRequest request) {
+        System.out.println(request.getBody());
     }
 }

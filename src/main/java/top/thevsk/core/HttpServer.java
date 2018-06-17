@@ -1,7 +1,6 @@
 package top.thevsk.core;
 
-import top.thevsk.entity.BotConfig;
-import top.thevsk.log.BotLog;
+import top.thevsk.entity.BotRequest;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,9 +13,9 @@ public class HttpServer implements Runnable {
 
     private int port;
 
-    private BotConfig botConfig;
-
     private boolean isRunning;
+
+    private Bot bot;
 
     HttpServer() {
     }
@@ -25,8 +24,8 @@ public class HttpServer implements Runnable {
         this.port = port;
     }
 
-    void setBotConfig(BotConfig botConfig) {
-        this.botConfig = botConfig;
+    void setBot(Bot bot) {
+        this.bot = bot;
     }
 
     void start() {
@@ -48,19 +47,8 @@ public class HttpServer implements Runnable {
                 socket = serverSocket.accept();
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
-                String[] top = bufferedReader.readLine().split(" ");
-                if (top[0].toUpperCase().equals("POST")) {
-                    int length = readHeadersGetLength(bufferedReader);
-                    if (length > 0) {
-                        char[] chars = new char[length];
-                        int read = bufferedReader.read(chars, 0, length);
-                        if (read == length) {
-                            System.out.println(new String(chars));
-                        }
-                    }
-                }
+                onHttp(bufferedReader);
                 echo(printWriter);
-                bufferedReader.close();
                 socket.close();
             }
         } catch (IOException e) {
@@ -80,25 +68,22 @@ public class HttpServer implements Runnable {
         printWriter.close();
     }
 
-    private int readHeadersGetLength(BufferedReader bufferedReader) {
-        int length = 0;
+    private void onHttp(BufferedReader bufferedReader) throws IOException {
         try {
-            BotLog.debug("read request headers");
-            String line;
-            while ((line = bufferedReader.readLine()) != null && !line.equals("")) {
-                BotLog.debug(line);
-                if (line.toLowerCase().contains("content-length")) {
-                    try {
-                        length = Integer.valueOf(line.substring(line.indexOf(":") + 1).trim());
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
-                    }
-                }
+            String[] line = bufferedReader.readLine().split(" ");
+            BotRequest.Headers headers = new BotRequest.Headers(bufferedReader);
+            if (headers.getContentLength() <= 0) {
+                bot.onHttp(new BotRequest(line[0], line[2], line[1], headers, null));
+                return;
             }
-            BotLog.debug("read request headers over");
-        } catch (IOException e) {
-            e.printStackTrace();
+            char[] chars = new char[headers.getContentLength()];
+            int read = bufferedReader.read(chars, 0, headers.getContentLength());
+            if (read != headers.getContentLength()) {
+                return;
+            }
+            bot.onHttp(new BotRequest(line[0], line[2], line[1], headers, new String(chars)));
+        } finally {
+            bufferedReader.close();
         }
-        return length;
     }
 }

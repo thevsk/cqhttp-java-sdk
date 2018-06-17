@@ -1,42 +1,58 @@
 package top.thevsk.entity;
 
-import top.thevsk.aop.BotControllerInterceptor;
-import top.thevsk.aop.BotSendInterceptor;
-
-import java.util.Set;
-
 public class BotConfig {
 
-    private Set<Object> botControllers = null;
+    private String apiVersion;
 
-    private Set<BotControllerInterceptor> botControllerInterceptors = null;
+    private Long selfId;
 
-    private Set<BotSendInterceptor> botSendInterceptors = null;
+    private String accessToken;
+
+    private String secret;
+
+    public String getApiVersion() {
+        return apiVersion;
+    }
+
+    public BotConfig setApiVersion(String apiVersion) {
+        this.apiVersion = apiVersion;
+        return this;
+    }
+
+    public Long getSelfId() {
+        return selfId;
+    }
+
+    public BotConfig setSelfId(Long selfId) {
+        this.selfId = selfId;
+        return this;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public BotConfig setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+        return this;
+    }
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public BotConfig setSecret(String secret) {
+        this.secret = secret;
+        return this;
+    }
 
     public BotConfig() {
     }
 
-    public Set<Object> getBotControllers() {
-        return botControllers;
-    }
-
-    public Set<BotControllerInterceptor> getBotControllerInterceptors() {
-        return botControllerInterceptors;
-    }
-
-    public Set<BotSendInterceptor> getBotSendInterceptors() {
-        return botSendInterceptors;
-    }
-
-    public void setBotControllers(Set<Object> botControllers) {
-        this.botControllers = botControllers;
-    }
-
-    public void setBotControllerInterceptors(Set<BotControllerInterceptor> botControllerInterceptors) {
-        this.botControllerInterceptors = botControllerInterceptors;
-    }
-
-    public void setBotSendInterceptors(Set<BotSendInterceptor> botSendInterceptors) {
-        this.botSendInterceptors = botSendInterceptors;
+    public BotConfig(String apiVersion, Long selfId, String accessToken, String secret) {
+        this.apiVersion = apiVersion;
+        this.selfId = selfId;
+        this.accessToken = accessToken;
+        this.secret = secret;
     }
 }

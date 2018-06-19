@@ -1,112 +1,171 @@
 package top.thevsk.entity;
 
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BotRequest {
 
-    private String method;
+    private Map<String, Object> map = new HashMap<>();
 
-    private String httpVersion;
-
-    private String path;
-
-    private Headers headers;
-
-    private String body;
-
-    public String getMethod() {
-        return method;
+    public BotRequest(Map<String, Object> map) {
+        this.map = map;
     }
 
-    public String getHttpVersion() {
-        return httpVersion;
+    private String getStr(String key) {
+        if (map.get(key) != null) {
+            return map.get(key).toString();
+        }
+        return null;
     }
 
-    public String getPath() {
-        return path;
+    private Long getLong(String key) {
+        if (map.get(key) != null) {
+            return Long.valueOf(map.get(key).toString());
+        }
+        return null;
     }
 
-    public Headers getHeaders() {
-        return headers;
+    /**
+     * 获取上报类型
+     *
+     * @return
+     */
+    public String getPostType() {
+        return getStr("post_type");
     }
 
-    public String getBody() {
-        return body;
+    /**
+     * 获取子类型
+     *
+     * @return
+     */
+    public String getSubType() {
+        return getStr("sub_type");
     }
 
-    public BotRequest(String method, String httpVersion, String path, Headers headers, String body) {
-        this.method = method;
-        this.httpVersion = httpVersion;
-        this.path = path;
-        this.headers = headers;
-        this.body = body;
+    /**
+     * 获取事件产生者 QQ 号
+     *
+     * @return
+     */
+    public Long getUserId() {
+        return getLong("user_id");
     }
 
-    public static class Headers {
+    /**
+     * 获取事件产生群号
+     *
+     * @return
+     */
+    public Long getGroupId() {
+        return getLong("group_id");
+    }
 
-        private String host;
+    /**
+     * 请求 flag，在调用处理请求的 API 时需要传入
+     *
+     * @return
+     */
+    public String getFlag() {
+        return getStr("flag");
+    }
 
-        private String accept;
+    /**
+     * 获取消息类型
+     *
+     * @return
+     */
+    public String getMessageType() {
+        return getStr("message_type");
+    }
 
-        private String contentType;
+    /**
+     * 获取消息内容
+     *
+     * @return
+     */
+    public String getMessage() {
+        return getStr("message");
+    }
 
-        private String userAgent;
+    /**
+     * 获取字体
+     *
+     * @return
+     */
+    public Long getFront() {
+        return getLong("font");
+    }
 
-        private String xSelfId;
+    /**
+     * 获取消息id
+     *
+     * @return
+     */
+    public Long getMessageId() {
+        return getLong("message_id");
+    }
 
-        private int contentLength = 0;
+    /**
+     * 获取讨论组id
+     *
+     * @return
+     */
+    public Long getDiscussId() {
+        return getLong("discuss_id");
+    }
 
-        public String getHost() {
-            return host;
-        }
+    /**
+     * 获取匿名用户显示名
+     *
+     * @return
+     */
+    public String getAnonymous() {
+        return getStr("anonymous");
+    }
 
-        public String getAccept() {
-            return accept;
-        }
+    /**
+     * 获取匿名用户 flag，在调用禁言 API 时需要传入
+     *
+     * @return
+     */
+    public String getAnonymousFlag() {
+        return getStr("anonymous_flag");
+    }
 
-        public String getContentType() {
-            return contentType;
-        }
+    /**
+     * 获取事件类型
+     *
+     * @return
+     */
+    public String getEvent() {
+        return getStr("event");
+    }
 
-        public String getUserAgent() {
-            return userAgent;
-        }
+    /**
+     * 获取操作者 QQ 号
+     *
+     * @return
+     */
+    public Long getOperatorId() {
+        return getLong("operator_id");
+    }
 
-        public String getxSelfId() {
-            return xSelfId;
-        }
+    /**
+     * 请求类型
+     *
+     * @return
+     */
+    public String getRequestType() {
+        return getStr("request_type");
+    }
 
-        public int getContentLength() {
-            return contentLength;
-        }
-
-        public Headers(BufferedReader bufferedReader) throws IOException {
-            String line;
-            while ((line = bufferedReader.readLine()) != null && !line.equals("")) {
-                if (line.toLowerCase().contains("host")) {
-                    this.host = line.substring(line.indexOf(":") + 1).trim();
-
-                } else if (line.toLowerCase().contains("accept")) {
-                    this.accept = line.substring(line.indexOf(":") + 1).trim();
-
-                } else if (line.toLowerCase().contains("content-type")) {
-                    this.contentType = line.substring(line.indexOf(":") + 1).trim();
-
-                } else if (line.toLowerCase().contains("user-agent")) {
-                    this.userAgent = line.substring(line.indexOf(":") + 1).trim();
-
-                } else if (line.toLowerCase().contains("x-self-id")) {
-                    this.xSelfId = line.substring(line.indexOf(":") + 1).trim();
-
-                } else if (line.toLowerCase().contains("content-length")) {
-                    try {
-                        this.contentLength = Integer.valueOf(line.substring(line.indexOf(":") + 1).trim());
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
+    /**
+     * 获取机器人的 QQ 号
+     *
+     * @return
+     */
+    public Long getSelfId() {
+        return getLong("self_id");
     }
 }

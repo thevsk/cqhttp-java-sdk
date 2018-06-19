@@ -1,4 +1,14 @@
 package top.thevsk.core;
 
-public class BotController {
+import top.thevsk.entity.BotRequest;
+
+public interface BotController {
+
+    boolean before(BotRequest request);
+
+    Object onMessage(BotRequest request);
+
+    Object onEvent(BotRequest request);
+
+    Object onRequest(BotRequest request);
 }

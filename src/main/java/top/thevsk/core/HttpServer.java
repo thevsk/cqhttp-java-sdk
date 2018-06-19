@@ -1,11 +1,8 @@
 package top.thevsk.core;
 
-import top.thevsk.entity.BotRequest;
+import top.thevsk.entity.HttpRequest;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -46,9 +43,12 @@ public class HttpServer implements Runnable {
             while (isRunning) {
                 socket = serverSocket.accept();
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
+                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 onHttp(bufferedReader);
-                echo(printWriter);
+                echo(bufferedWriter);
+                bufferedWriter.flush();
+                bufferedWriter.close();
+                bufferedReader.close();
                 socket.close();
             }
         } catch (IOException e) {
@@ -56,34 +56,28 @@ public class HttpServer implements Runnable {
         }
     }
 
-    private void echo(PrintWriter printWriter) {
+    private void echo(BufferedWriter bufferedWriter) throws IOException {
         String body = "{}";
         String echo = "HTTP/1.1 204 OK\r\n";
         echo += "Content-Type: application/json; charset=utf-8\r\n";
         echo += "Content-Length: " + body.length() + "\r\n";
         echo += "\r\n";
         echo += body;
-        printWriter.write(echo);
-        printWriter.flush();
-        printWriter.close();
+        bufferedWriter.write(echo.toCharArray());
     }
 
     private void onHttp(BufferedReader bufferedReader) throws IOException {
-        try {
-            String[] line = bufferedReader.readLine().split(" ");
-            BotRequest.Headers headers = new BotRequest.Headers(bufferedReader);
-            if (headers.getContentLength() <= 0) {
-                bot.onHttp(new BotRequest(line[0], line[2], line[1], headers, null));
-                return;
-            }
-            char[] chars = new char[headers.getContentLength()];
-            int read = bufferedReader.read(chars, 0, headers.getContentLength());
-            if (read != headers.getContentLength()) {
-                return;
-            }
-            bot.onHttp(new BotRequest(line[0], line[2], line[1], headers, new String(chars)));
-        } finally {
-            bufferedReader.close();
+        String[] line = bufferedReader.readLine().split(" ");
+        HttpRequest.Headers headers = new HttpRequest.Headers(bufferedReader);
+        if (headers.getContentLength() <= 0) {
+            bot.onHttp(new HttpRequest(line[0], line[2], line[1], headers, null));
+            return;
         }
+        char[] chars = new char[headers.getContentLength()];
+        int read = bufferedReader.read(chars, 0, headers.getContentLength());
+        if (read != headers.getContentLength()) {
+            return;
+        }
+        new Thread(() -> bot.onHttp(new HttpRequest(line[0], line[2], line[1], headers, new String(chars)))).start();
     }
 }

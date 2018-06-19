@@ -55,4 +55,13 @@ public class BotConfig {
         this.accessToken = accessToken;
         this.secret = secret;
     }
+
+    public BotConfig(String accessToken, String secret) {
+        this.accessToken = accessToken;
+        this.secret = secret;
+    }
+
+    public BotConfig(String secret) {
+        this.secret = secret;
+    }
 }

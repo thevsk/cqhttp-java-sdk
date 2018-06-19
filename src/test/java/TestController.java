@@ -9,6 +9,7 @@ public class TestController implements BotController {
 
     @Override
     public Object onMessage(BotRequest request) {
+        request.getFastReply().replyAt("success");
         return null;
     }
 

@@ -17,6 +17,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author thevsk
+ * @ProjectName https://github.com/thevsk/cqhttp-java-sdk
+ * @date 2018-06-19 20:56
+ */
 public class Bot {
 
     private HashSet<BotController> botControllers = null;
@@ -107,6 +112,7 @@ public class Bot {
         httpServer.setBot(this);
         // init botHttpSender
         botHttpSender.setBot(this);
+        botHttpSender.setBotSendInterceptors(botSendInterceptors);
         httpServer.start();
         BotLog.info("server started...");
     }

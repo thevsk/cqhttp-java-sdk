@@ -42,6 +42,7 @@ public class HttpRequest {
         this.path = line[1];
         this.httpVersion = line[2];
         Headers headers = new Headers(bufferedReader);
+        this.headers = headers;
         if (headers.getContentLength() <= 0) {
             return;
         }

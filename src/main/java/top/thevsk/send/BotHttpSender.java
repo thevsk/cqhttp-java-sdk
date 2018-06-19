@@ -1,6 +1,7 @@
 package top.thevsk.send;
 
 import com.alibaba.fastjson.JSON;
+import top.thevsk.aop.BotSendInterceptor;
 import top.thevsk.core.Bot;
 import top.thevsk.entity.BotResponse;
 import top.thevsk.utils.StrUtils;
@@ -9,54 +10,75 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class BotHttpSender implements BotSender {
 
     private Bot bot;
 
+    private HashSet<BotSendInterceptor> botSendInterceptors;
+
     public void setBot(Bot bot) {
         this.bot = bot;
     }
 
+    public void setBotSendInterceptors(HashSet<BotSendInterceptor> botSendInterceptors) {
+        this.botSendInterceptors = botSendInterceptors;
+    }
+
     private BotResponse baseSend(String method, Map<String, Object> param) {
+        for (BotSendInterceptor interceptor : botSendInterceptors) {
+            if (!interceptor.before(method, param)) return null;
+        }
         try {
-            URL url = new URL("http://" + bot.getBotConfig().getApiHost() + ":" + bot.getBotConfig().getApiPort() + "/" + method);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-
-            conn.setConnectTimeout(timeOut);
-            conn.setReadTimeout(timeOut);
-
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            conn.setRequestProperty("User-Agent", "thevsk-bot-sdk/1.0.0");
-            if (StrUtils.isNotBlank(bot.getBotConfig().getAccessToken())) {
-                conn.setRequestProperty("Token", " " + bot.getBotConfig().getAccessToken());
+            BotResponse botResponse = _baseSend(method, param == null ? "{}" : JSON.toJSONString(param));
+            for (BotSendInterceptor interceptor : botSendInterceptors) {
+                interceptor.after(method, param, botResponse);
             }
-
-            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
-            if (param == null) {
-                bufferedWriter.write("{}");
-            } else {
-                bufferedWriter.write(JSON.toJSONString(param));
-            }
-            bufferedWriter.flush();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder json = new StringBuilder();
-            String line;
-            while ((line = bufferedReader.readLine()) != null && !line.equals("")) {
-                json.append(line);
-            }
-            bufferedReader.close();
-            bufferedWriter.close();
-            return JSON.toJavaObject(JSON.parseObject(json.toString()), BotResponse.class);
+            return botResponse;
         } catch (IOException e) {
+            for (BotSendInterceptor interceptor : botSendInterceptors) {
+                interceptor.throwException(method, param, e);
+            }
             e.printStackTrace();
         }
         return null;
+    }
+
+    private BotResponse _baseSend(String method, String param) throws IOException {
+        URL url = new URL("http://" + bot.getBotConfig().getApiHost() + ":" + bot.getBotConfig().getApiPort() + "/" + method);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
+
+        conn.setConnectTimeout(timeOut);
+        conn.setReadTimeout(timeOut);
+
+        conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+        conn.setRequestProperty("User-Agent", "thevsk-bot-sdk/1.0.0");
+        if (StrUtils.isNotBlank(bot.getBotConfig().getAccessToken())) {
+            conn.setRequestProperty("Token", " " + bot.getBotConfig().getAccessToken());
+        }
+
+        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
+        if (param == null) {
+            bufferedWriter.write("{}");
+        } else {
+            bufferedWriter.write(param);
+        }
+        bufferedWriter.flush();
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        StringBuilder json = new StringBuilder();
+        String line;
+        while ((line = bufferedReader.readLine()) != null && !line.equals("")) {
+            json.append(line);
+        }
+        bufferedReader.close();
+        bufferedWriter.close();
+        return JSON.toJavaObject(JSON.parseObject(json.toString()), BotResponse.class);
     }
 
 
@@ -191,7 +213,7 @@ public class BotHttpSender implements BotSender {
      * ]
      */
     public BotResponse _getFriendList() {
-        return baseSend(_GET_FRIEND_LIST, null);
+        return baseSend(_GET_GROUP_INFO, null);
     }
 
     /**

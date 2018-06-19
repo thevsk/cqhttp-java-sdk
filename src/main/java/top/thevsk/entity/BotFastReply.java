@@ -4,7 +4,7 @@ import top.thevsk.send.BotHttpSender;
 import top.thevsk.utils.CQUtils;
 import top.thevsk.utils.StrUtils;
 
-class BotFastReply {
+public class BotFastReply {
 
     private BotHttpSender botHttpSender;
 

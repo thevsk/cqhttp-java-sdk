@@ -11,6 +11,12 @@ public class BotRequest {
 
     private BotHttpSender botHttpSender;
 
+    private BotFastReply fastReply;
+
+    public BotFastReply getFastReply() {
+        return fastReply;
+    }
+
     public BotHttpSender getBotHttpSender() {
         return botHttpSender;
     }
@@ -18,6 +24,7 @@ public class BotRequest {
     public BotRequest(Map<String, Object> map, BotHttpSender botHttpSender) {
         this.map = map;
         this.botHttpSender = botHttpSender;
+        fastReply = new BotFastReply(botHttpSender, this);
     }
 
     private String getStr(String key) {

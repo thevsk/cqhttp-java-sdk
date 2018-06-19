@@ -33,4 +33,15 @@ public class StrUtils {
     public static boolean isNotBlank(String str) {
         return !isBlank(str);
     }
+
+    public static boolean isNotNullObjects(Object... objects) {
+        for (Object object : objects) {
+            if (object == null) return false;
+        }
+        return true;
+    }
+
+    public static boolean isNullObjects(Object... objects) {
+        return !isNotNullObjects(objects);
+    }
 }

@@ -4,6 +4,7 @@ import top.thevsk.entity.BotConfig;
 public class Test {
 
     public static void main(String[] args) {
-        new Bot(7800, new BotConfig().setSelfId(2421139761L).setApiVersion("4.0.5")).start();
+        Bot bot = new Bot(7800, new BotConfig().setApiHost("127.0.0.1").setApiPort(5700));
+        bot.addBotController(new TestController()).start();
     }
 }

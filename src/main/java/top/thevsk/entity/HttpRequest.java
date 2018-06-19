@@ -35,15 +35,24 @@ public class HttpRequest {
         return body;
     }
 
-    public HttpRequest(String method, String httpVersion, String path, Headers headers, String body) {
-        this.method = method;
-        this.httpVersion = httpVersion;
-        this.path = path;
-        this.headers = headers;
-        this.body = body;
+    public HttpRequest(BufferedReader bufferedReader) throws IOException {
+        this.body = null;
+        String[] line = bufferedReader.readLine().split(" ");
+        this.method = line[0];
+        this.path = line[1];
+        this.httpVersion = line[2];
+        Headers headers = new Headers(bufferedReader);
+        if (headers.getContentLength() <= 0) {
+            return;
+        }
+        char[] chars = new char[headers.getContentLength()];
+        int read = bufferedReader.read(chars, 0, headers.getContentLength());
+        if (read == headers.getContentLength()) {
+            this.body = new String(chars);
+        }
     }
 
-    public static class Headers {
+    public class Headers {
 
         private String host;
 

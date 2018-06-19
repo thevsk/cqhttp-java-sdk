@@ -1,5 +1,7 @@
 package top.thevsk.entity;
 
+import top.thevsk.send.BotHttpSender;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,8 +9,15 @@ public class BotRequest {
 
     private Map<String, Object> map = new HashMap<>();
 
-    public BotRequest(Map<String, Object> map) {
+    private BotHttpSender botHttpSender;
+
+    public BotHttpSender getBotHttpSender() {
+        return botHttpSender;
+    }
+
+    public BotRequest(Map<String, Object> map, BotHttpSender botHttpSender) {
         this.map = map;
+        this.botHttpSender = botHttpSender;
     }
 
     private String getStr(String key) {

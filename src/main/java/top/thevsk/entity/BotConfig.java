@@ -10,6 +10,28 @@ public class BotConfig {
 
     private String secret;
 
+    private String apiHost;
+
+    private int apiPort = 0;
+
+    public String getApiHost() {
+        return apiHost;
+    }
+
+    public BotConfig setApiHost(String apiHost) {
+        this.apiHost = apiHost;
+        return this;
+    }
+
+    public int getApiPort() {
+        return apiPort;
+    }
+
+    public BotConfig setApiPort(int apiPort) {
+        this.apiPort = apiPort;
+        return this;
+    }
+
     public String getApiVersion() {
         return apiVersion;
     }
@@ -47,21 +69,5 @@ public class BotConfig {
     }
 
     public BotConfig() {
-    }
-
-    public BotConfig(String apiVersion, Long selfId, String accessToken, String secret) {
-        this.apiVersion = apiVersion;
-        this.selfId = selfId;
-        this.accessToken = accessToken;
-        this.secret = secret;
-    }
-
-    public BotConfig(String accessToken, String secret) {
-        this.accessToken = accessToken;
-        this.secret = secret;
-    }
-
-    public BotConfig(String secret) {
-        this.secret = secret;
     }
 }

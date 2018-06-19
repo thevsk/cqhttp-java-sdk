@@ -1,13 +1,14 @@
 package top.thevsk.core;
 
 import com.alibaba.fastjson.JSON;
-import top.thevsk.annotation.ControllerInterceptor;
+import top.thevsk.annotation.BotInterceptor;
 import top.thevsk.aop.BotControllerInterceptor;
 import top.thevsk.aop.BotSendInterceptor;
 import top.thevsk.entity.BotConfig;
 import top.thevsk.entity.BotRequest;
 import top.thevsk.entity.HttpRequest;
 import top.thevsk.log.BotLog;
+import top.thevsk.send.BotHttpSender;
 import top.thevsk.utils.BeanUtils;
 import top.thevsk.utils.HmacSHA1Utils;
 import top.thevsk.utils.StrUtils;
@@ -32,7 +33,17 @@ public class Bot {
 
     private BotConfig botConfig = null;
 
-    private void init(int port, BotConfig botConfig) {
+    private BotHttpSender botHttpSender = null;
+
+    public BotConfig getBotConfig() {
+        return botConfig;
+    }
+
+    public BotHttpSender getBotHttpSender() {
+        return botHttpSender;
+    }
+
+    public Bot(int port, BotConfig botConfig) {
         botControllerInterceptors = new HashSet<>();
         botControllers = new HashSet<>();
         botSendInterceptors = new HashSet<>();
@@ -40,15 +51,8 @@ public class Bot {
         botControllerInterceptorConcurrentHashMap = new ConcurrentHashMap<>();
         httpServer = new HttpServer();
         httpServer.setPort(port);
+        botHttpSender = new BotHttpSender();
         this.botConfig = botConfig;
-    }
-
-    public Bot(int port, BotConfig botConfig) {
-        init(port, botConfig);
-    }
-
-    public Bot(int port) {
-        init(port, null);
     }
 
     public Bot addBotController(BotController botController) {
@@ -67,14 +71,15 @@ public class Bot {
     }
 
     public void start() {
-        check();
-        beforeStart();
-        httpServer.setBot(this);
-        httpServer.start();
-        BotLog.info("server started...");
-    }
-
-    private void beforeStart() {
+        if (botControllers.size() == 0) {
+            throw new RuntimeException("没有任何接收数据的 controller");
+        }
+        if (StrUtils.isBlank(botConfig.getApiHost())) {
+            throw new RuntimeException("http api host 为空！：new BotConfig().setApiHost(\"127.0.0.1\").setApiPort(5700)");
+        }
+        if (botConfig.getApiPort() == 0) {
+            throw new RuntimeException("http api port 为空！：new BotConfig().setApiHost(\"127.0.0.1\").setApiPort(5700)");
+        }
         // init botControllerInterceptorConcurrentHashMap
         for (BotControllerInterceptor interceptor : botControllerInterceptors) {
             botControllerInterceptorConcurrentHashMap.put(interceptor.getClass().getName(), interceptor);
@@ -83,22 +88,27 @@ public class Bot {
         for (BotController botController : botControllers) {
             HashSet<BotControllerInterceptor> interceptors = new HashSet<>();
             BeanUtils.copy(botControllerInterceptors, interceptors);
-            Class<? extends BotControllerInterceptor>[] controllerInterceptor = botController.getClass().getAnnotation(ControllerInterceptor.class).value();
-            for (Class clazz : controllerInterceptor) {
-                interceptors.add(botControllerInterceptorConcurrentHashMap.get(clazz.getName()));
+            BotInterceptor controllerInterceptor = botController.getClass().getAnnotation(BotInterceptor.class);
+            if (controllerInterceptor != null) {
+                Class<? extends BotControllerInterceptor>[] interceptorsClass = controllerInterceptor.value();
+                for (Class clazz : interceptorsClass) {
+                    if (botControllerInterceptorConcurrentHashMap.get(clazz.getName()) == null) {
+                        BotControllerInterceptor botControllerInterceptor = (BotControllerInterceptor) BeanUtils.newInstance(clazz);
+                        interceptors.add(botControllerInterceptor);
+                        botControllerInterceptorConcurrentHashMap.put(botControllerInterceptor.getClass().getName(), botControllerInterceptor);
+                    } else {
+                        interceptors.add(botControllerInterceptorConcurrentHashMap.get(clazz.getName()));
+                    }
+                }
             }
             controllerInterceptorMap.put(botController.getClass().getName(), interceptors);
         }
-    }
-
-    private void check() {
-        if (botControllers.size() == 0) {
-            throw new RuntimeException("empty controller");
-        }
-    }
-
-    BotConfig getBotConfig() {
-        return botConfig;
+        // init httpServer
+        httpServer.setBot(this);
+        // init botHttpSender
+        botHttpSender.setBot(this);
+        httpServer.start();
+        BotLog.info("server started...");
     }
 
     void onHttp(HttpRequest request) {
@@ -114,39 +124,37 @@ public class Bot {
             BotLog.warn("[解析请求] 非 CQHttp 消息");
             return;
         }
-        if (botConfig != null) {
-            if (StrUtils.isNotBlank(botConfig.getApiVersion()) && !request.getHeaders().getUserAgent().contains(botConfig.getApiVersion())) {
-                BotLog.warn("[解析请求] API 版本错误");
+        if (StrUtils.isNotBlank(botConfig.getApiVersion()) && !request.getHeaders().getUserAgent().contains(botConfig.getApiVersion())) {
+            BotLog.warn("[解析请求] API 版本错误");
+            return;
+        }
+        if (botConfig.getSelfId() != null && !request.getHeaders().getSelfId().equals(botConfig.getSelfId())) {
+            BotLog.warn("[解析请求] QQ 号错误");
+            return;
+        }
+        if (StrUtils.isNotBlank(botConfig.getSecret())) {
+            String hmacSha1 = HmacSHA1Utils.hmacSha1(request.getBody().getBytes(), botConfig.getSecret().getBytes());
+            if (hmacSha1 != null && !request.getHeaders().getSignature().toUpperCase().contains(hmacSha1)) {
+                BotLog.warn("[解析请求] Secret 验证错误");
                 return;
-            }
-            if (botConfig.getSelfId() != null && !request.getHeaders().getSelfId().equals(botConfig.getSelfId())) {
-                BotLog.warn("[解析请求] QQ 号错误");
-                return;
-            }
-            if (StrUtils.isNotBlank(botConfig.getSecret())) {
-                String hmacSha1 = HmacSHA1Utils.hmacSha1(request.getBody().getBytes(), botConfig.getSecret().getBytes());
-                if (hmacSha1 != null && !request.getHeaders().getSignature().toUpperCase().contains(hmacSha1)) {
-                    BotLog.warn("[解析请求] Secret 验证错误");
-                    return;
-                }
             }
         }
         call(request.getBody());
     }
 
     private void call(String json) {
-        BotRequest request = new BotRequest(JSON.parseObject(json));
+        BotRequest request = new BotRequest(JSON.parseObject(json), botHttpSender);
         for (BotController botController : botControllers) {
             Set<BotControllerInterceptor> interceptors = controllerInterceptorMap.get(botController.getClass().getName());
-            if (callBefore(request, interceptors)) {
-                callAfter(request, interceptors, callController(botController, request, interceptors));
+            if (callBefore(botController, request, interceptors)) {
+                callAfter(botController, request, interceptors, callController(botController, request, interceptors));
             }
         }
     }
 
-    private boolean callBefore(BotRequest request, Set<BotControllerInterceptor> interceptors) {
+    private boolean callBefore(BotController botController, BotRequest request, Set<BotControllerInterceptor> interceptors) {
         for (BotControllerInterceptor interceptor : interceptors) {
-            if (!interceptor.before(request)) {
+            if (!interceptor.before(request, botController)) {
                 return false;
             }
         }
@@ -168,7 +176,6 @@ public class Bot {
                         controllerReturnValue = botController.onRequest(request);
                         break;
                     default:
-                        BotLog.warn("[调用 Controller ] 收到了未知的消息类型：" + request.getPostType());
                 }
             }
         } catch (Exception e) {
@@ -183,9 +190,9 @@ public class Bot {
         }
     }
 
-    private void callAfter(BotRequest request, Set<BotControllerInterceptor> interceptors, Object controllerReturnValue) {
+    private void callAfter(BotController botController, BotRequest request, Set<BotControllerInterceptor> interceptors, Object controllerReturnValue) {
         for (BotControllerInterceptor interceptor : interceptors) {
-            interceptor.after(request, controllerReturnValue);
+            interceptor.after(request, botController, controllerReturnValue);
         }
     }
 }

@@ -67,17 +67,7 @@ public class HttpServer implements Runnable {
     }
 
     private void onHttp(BufferedReader bufferedReader) throws IOException {
-        String[] line = bufferedReader.readLine().split(" ");
-        HttpRequest.Headers headers = new HttpRequest.Headers(bufferedReader);
-        if (headers.getContentLength() <= 0) {
-            bot.onHttp(new HttpRequest(line[0], line[2], line[1], headers, null));
-            return;
-        }
-        char[] chars = new char[headers.getContentLength()];
-        int read = bufferedReader.read(chars, 0, headers.getContentLength());
-        if (read != headers.getContentLength()) {
-            return;
-        }
-        new Thread(() -> bot.onHttp(new HttpRequest(line[0], line[2], line[1], headers, new String(chars)))).start();
+        HttpRequest request = new HttpRequest(bufferedReader);
+        new Thread(() -> bot.onHttp(request)).start();
     }
 }

@@ -1,12 +1,14 @@
 package top.thevsk.core;
 
 import com.alibaba.fastjson.JSON;
+import top.thevsk.annotation.ControllerInterceptor;
 import top.thevsk.aop.BotControllerInterceptor;
 import top.thevsk.aop.BotSendInterceptor;
 import top.thevsk.entity.BotConfig;
 import top.thevsk.entity.BotRequest;
 import top.thevsk.entity.HttpRequest;
 import top.thevsk.log.BotLog;
+import top.thevsk.utils.BeanUtils;
 import top.thevsk.utils.HmacSHA1Utils;
 import top.thevsk.utils.StrUtils;
 
@@ -19,6 +21,8 @@ public class Bot {
     private HashSet<BotController> botControllers = null;
 
     private HashSet<BotControllerInterceptor> botControllerInterceptors = null;
+
+    private ConcurrentHashMap<String, BotControllerInterceptor> botControllerInterceptorConcurrentHashMap = null;
 
     private HashSet<BotSendInterceptor> botSendInterceptors = null;
 
@@ -33,6 +37,7 @@ public class Bot {
         botControllers = new HashSet<>();
         botSendInterceptors = new HashSet<>();
         controllerInterceptorMap = new ConcurrentHashMap<>();
+        botControllerInterceptorConcurrentHashMap = new ConcurrentHashMap<>();
         httpServer = new HttpServer();
         httpServer.setPort(port);
         this.botConfig = botConfig;
@@ -62,11 +67,28 @@ public class Bot {
     }
 
     public void start() {
-//        check();
-        initControllerInterceptorMap();
+        check();
+        beforeStart();
         httpServer.setBot(this);
         httpServer.start();
         BotLog.info("server started...");
+    }
+
+    private void beforeStart() {
+        // init botControllerInterceptorConcurrentHashMap
+        for (BotControllerInterceptor interceptor : botControllerInterceptors) {
+            botControllerInterceptorConcurrentHashMap.put(interceptor.getClass().getName(), interceptor);
+        }
+        // init controllerInterceptorMap
+        for (BotController botController : botControllers) {
+            HashSet<BotControllerInterceptor> interceptors = new HashSet<>();
+            BeanUtils.copy(botControllerInterceptors, interceptors);
+            Class<? extends BotControllerInterceptor>[] controllerInterceptor = botController.getClass().getAnnotation(ControllerInterceptor.class).value();
+            for (Class clazz : controllerInterceptor) {
+                interceptors.add(botControllerInterceptorConcurrentHashMap.get(clazz.getName()));
+            }
+            controllerInterceptorMap.put(botController.getClass().getName(), interceptors);
+        }
     }
 
     private void check() {
@@ -75,8 +97,8 @@ public class Bot {
         }
     }
 
-    private void initControllerInterceptorMap() {
-
+    BotConfig getBotConfig() {
+        return botConfig;
     }
 
     void onHttp(HttpRequest request) {
@@ -110,10 +132,6 @@ public class Bot {
             }
         }
         call(request.getBody());
-    }
-
-    BotConfig getBotConfig() {
-        return botConfig;
     }
 
     private void call(String json) {

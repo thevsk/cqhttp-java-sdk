@@ -1,5 +1,6 @@
 package top.thevsk.entity;
 
+import com.alibaba.fastjson.JSON;
 import top.thevsk.send.BotHttpSender;
 
 import java.util.HashMap;
@@ -183,5 +184,9 @@ public class BotRequest {
      */
     public Long getSelfId() {
         return getLong("self_id");
+    }
+
+    public String toString() {
+        return JSON.toJSONString(map);
     }
 }

@@ -19,8 +19,8 @@ public class Test {
 
     public static void main(String[] args) {
         new Bot(7800, new BotConfig().setApiHost("127.0.0.1").setApiPort(5700))
-                .addBotController(new Controller())
-                .start();
+            .addBotController(new Controller())
+            .start();
     }
 
     public static class Controller implements BotController {

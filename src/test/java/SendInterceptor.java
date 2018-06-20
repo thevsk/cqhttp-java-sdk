@@ -12,17 +12,17 @@ import java.util.Map;
 public class SendInterceptor implements BotSendInterceptor {
     @Override
     public boolean before(String method, Map<String, Object> param) {
-        System.out.println("进入 send before 过滤器，调用方法 " + method);
+        System.out.println("进入 send before 拦截器，调用方法 " + method);
         return true;
     }
 
     @Override
     public void after(String method, Map<String, Object> param, BotResponse response) {
-        System.out.println("进入 send after 过滤器");
+        System.out.println("进入 send after 拦截器");
     }
 
     @Override
     public void throwException(String method, Map<String, Object> param, Exception exception) {
-        System.out.println("进入 send exception 过滤器");
+        System.out.println("进入 send exception 拦截器");
     }
 }

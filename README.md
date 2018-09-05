@@ -1,3 +1,5 @@
+# 项目问题很多，我懒得改了，就这样了
+
 # cqhttp-java-sdk 
 
 > 感谢 [@richardchien](https://github.com/richardchien) 提供 [richardchien/coolq-http-api](https://github.com/richardchien/coolq-http-api)
